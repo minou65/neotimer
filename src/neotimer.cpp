@@ -153,14 +153,12 @@ void Neotimer::start() {
 	this->_waiting = true;
 }
 
-/*
- * Start a timer
- */
+// start a timer with a specific interval
 void Neotimer::start(unsigned long t) {
+	this->set(t);
 	this->reset();
 	this->_timer.started = true;
 	this->_waiting = true;
-	this->set(t);
 }
 
 /*
