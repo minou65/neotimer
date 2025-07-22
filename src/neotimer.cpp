@@ -25,6 +25,14 @@ void Neotimer::init() {
 	this->_waiting = false;
 }
 
+boolean Neotimer::repeatdone(int times) {
+	bool ret_ = this->repeat(times);
+	if (this->repetitions == 0) {
+		this->done();
+	}
+	return ret_;
+}
+
 /*
  * Repeats a timer x times
  * Useful to execute a task periodically.

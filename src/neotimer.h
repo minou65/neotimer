@@ -21,6 +21,7 @@ public:
 	~Neotimer();            //Destructor
 
 	void init();            //Initializations
+	boolean repeatdone(int times);
 	boolean done();         //Indicates time has elapsed
 	boolean repeat(int times);
 	boolean repeat(int times, unsigned long _t);
