@@ -41,24 +41,17 @@ boolean Neotimer::repeatdone(int times) {
  * 	  do something 10 times, every second (default)
  * }
  */
-boolean Neotimer::repeat(int times) {
-	if (times != NEOTIMER_UNLIMITED) {
-		// First repeat
-		if (this->repetitions == NEOTIMER_UNLIMITED) {
-			this->repetitions = times;
-		}
-		// Stop
-		if (this->repetitions == 0) {
-			return false;
-		}
-
-		if (this->repeat()) {
-			this->repetitions--;
-			return true;
-		}
-		return false;
+boolean Neotimer::repeat() {
+	if (this->done()) {
+		this->reset();
+		return true;
 	}
-	return this->repeat();
+	if (!this->_timer.started) {
+		this->_timer.last = millis();
+		this->_timer.started = true;
+		this->_waiting = true;
+	}
+	return false;
 }
 
 /*
