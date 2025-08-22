@@ -4,42 +4,74 @@
 
 #include "neotimer.h"
 
-//Default constructor
+/*
+ * Default constructor for the Neotimer class.
+ * Initializes the timer with a default interval of 1000 milliseconds (1 second).
+ * The timer is not started after construction.
+ */
 Neotimer::Neotimer() {
-	this->_timer.time = 1000; //Default 1 second interval if not specified
+	this->_timer.time = 1000; // Default 1 second interval if not specified
 	this->_timer.started = false;
 }
 
-Neotimer::Neotimer(unsigned long _t) {
-	this->_timer.time = _t;
+/*
+ * Constructor for the Neotimer class with a custom interval.
+ * Initializes the timer with the specified interval in milliseconds.
+ * The timer is not started after construction.
+ */
+Neotimer::Neotimer(unsigned long t) {
+	this->_timer.time = t;
 	this->_timer.started = false;
 }
 
-//Default destructor
+Neotimer::Neotimer(const Neotimer& other) {
+	this->_timer = other._timer;
+	this->_waiting = other._waiting;
+	this->_lastSignal = other._lastSignal;
+	this->_debouncedState = other._debouncedState;
+	this->_repetitions = other._repetitions;
+}
+
+Neotimer& Neotimer::operator=(const Neotimer& other) {
+	if (this != &other) {
+		this->_timer = other._timer;
+		this->_waiting = other._waiting;
+		this->_lastSignal = other._lastSignal;
+		this->_debouncedState = other._debouncedState;
+		this->_repetitions = other._repetitions;
+	}
+	return *this;
+}
+
+/*
+ * Destructor for the Neotimer class.
+ * No special cleanup is required.
+ */
 Neotimer::~Neotimer() {
 
 }
 
-//Initializations
-void Neotimer::init() {
-	this->_waiting = false;
-}
-
-boolean Neotimer::repeatdone(int times) {
-	bool ret_ = this->repeat(times);
-	if (this->repetitions == 0) {
-		this->done();
+/*
+ * Checks if the timer interval has elapsed.
+ * This function returns true exactly once when the configured interval has passed
+ * since the timer was started or last reset. After returning true, the timer remains
+ * in the "done" state until it is reset or restarted.
+ */
+boolean Neotimer::done() {
+	if (!this->_timer.started)
+		return false;
+	unsigned long _now = millis();
+	if ((_now - this->_timer.last) >= this->_timer.time) {
+		this->_timer.done = true;
+		this->_waiting = false;
+		return true;
 	}
-	return ret_;
+	return false;
 }
 
 /*
- * Repeats a timer x times
- * Useful to execute a task periodically.
- * Usage:
- * if(timer.repeat(10)){
- * 	  do something 10 times, every second (default)
- * }
+ * Repeats a timer indefinitely with the configured interval.
+ * This function is useful for executing a task periodically, for example in the Arduino loop.
  */
 boolean Neotimer::repeat() {
 	if (this->done()) {
@@ -55,48 +87,179 @@ boolean Neotimer::repeat() {
 }
 
 /*
- * Repeats a timer x times with a defined period
- * Useful to execute a task periodically.
- * Usage:
- * if(timer.repeat(10,5000)){
- * 	  do something 10 times, every 5 seconds
- * }
+ * Repeats a timer for a specified number of times with the configured interval.
+ * After the specified number of intervals, always returns false.
  */
-boolean Neotimer::repeat(int times, unsigned long _t) {
-	this->_timer.time = _t;
-	return this->repeat(times);
-}
+boolean Neotimer::repeat(int times) {
+	// Initialize repetitions on first call or after reset
+	if (this->_repetitions == NEOTIMER_UNLIMITED) {
+		this->_repetitions = times;
+	}
 
-void Neotimer::repeatReset() {
-	this->repetitions = -1;
-}
-
-/*
- * Checks if timer has finished
- * Returns true if it finished
- */
-boolean Neotimer::done() {
-	if (!this->_timer.started) 
+	// Stop if repetitions are exhausted or times is zero
+	if (this->_repetitions == 0 || times == 0) {
 		return false;
-	unsigned long _now = millis();
-	if ((_now - this->_timer.last) >= this->_timer.time) {
-		this->_timer.done = true;
-		this->_waiting = false;
+	}
+
+	// Only decrement and return true if timer interval elapsed
+	if (this->repeat()) {
+		this->_repetitions--;
 		return true;
 	}
 	return false;
 }
 
 /*
- * Sets a timer preset
+ * Repeats a timer for a specified number of times with a custom interval.
+ * This function is useful for executing a task periodically with a specific interval,
+ * but only a limited number of times.
+ */
+boolean Neotimer::repeat(int times, unsigned long t) {
+	this->_timer.time = t;
+	return this->repeat(times);
+}
+
+/*
+ * Resets the repetition counter for the repeat(int times) and repeat(int times, unsigned long t) functions.
+ * After calling repeatReset(), the next call to repeat(int times) or repeat(int times, t) will start a new counting cycle
+ * with the specified number of repetitions.
+ */
+void Neotimer::repeatReset() {
+	this->_repetitions = NEOTIMER_UNLIMITED;
+}
+
+/*
+ * Indicates if the timer is active but has not yet finished.
+ */
+boolean Neotimer::waiting() {
+	return (this->_timer.started && !this->done()) ? true : false;
+}
+
+/*
+ * Indicates if the timer has started.
+ */
+boolean Neotimer::started() {
+	return this->_timer.started;
+}
+
+/*
+ * Starts the timer with the currently configured interval.
+ * The timer is reset and started immediately. The elapsed time is set to zero.
+ */
+void Neotimer::start() {
+	this->reset();
+	this->_timer.started = true;
+	this->_waiting = true;
+}
+
+/*
+ * Starts the timer with a specific interval in milliseconds.
+ * The timer is reset, the interval is set to the given value, and the timer is started immediately.
+ */
+void Neotimer::start(unsigned long t) {
+	this->set(t);
+	this->reset();
+	this->_timer.started = true;
+	this->_waiting = true;
+}
+
+/*
+ * Stops the timer and returns the elapsed time in milliseconds since the last start or reset.
+ * After calling stop(), the timer is no longer running until start() or reset() is called again.
+ */
+unsigned long Neotimer::stop() {
+	this->_timer.started = false;
+	this->_waiting = false;
+	return this->getElapsed();
+}
+
+/*
+ * Returns the elapsed time in milliseconds since the timer was last started or reset.
+ * This function does not affect the timer's running state.
+ */
+unsigned long Neotimer::getElapsed() {
+	return millis() - this->_timer.last;
+}
+
+/*
+ * Restarts a stopped timer without resetting the elapsed time.
+ * If the timer is not yet done, this function resumes the timer from where it was stopped.
+ * If the timer has already elapsed (done), this function does nothing.
+ */
+void Neotimer::restart() {
+	if (!this->done()) {
+		this->_timer.started = true;
+		this->_waiting = true;
+	}
+}
+
+/*
+ * Pauses the timer, preserving the elapsed time.
+ * After calling pause(), the timer stops counting but remembers how much time has already elapsed.
+ * You can resume the timer later using resume(), and it will continue from where it was paused.
+ *
+ * Usage example:
+ *   timer.start(5000); // Start a 5 second timer
+ *   // ... some code ...
+ *   timer.pause(); // Pause the timer
+ *   // ... some code ...
+ *   timer.resume(); // Resume the timer, continues counting the remaining time
+ *
+ * Note:
+ *   - If the timer is not running, pause() has no effect.
+ *   - Use resume() to continue the timer after pausing.
+ */
+void Neotimer::pause() {
+	if (this->_timer.started) {
+		this->_pausedAt = millis();
+		this->_timer.started = false;
+	}
+}
+
+/*
+ * Resumes a previously paused timer.
+ * The timer continues counting from where it was paused, preserving the remaining time.
+ *
+ * Usage example:
+ *   timer.pause();
+ *   // ... some code ...
+ *   timer.resume(); // Continues the timer from where it was paused
+ *
+ * Note:
+ *   - If the timer was not paused, resume() has no effect.
+ *   - If the timer has already finished, resume() has no effect.
+ */
+void Neotimer::resume() {
+	if (!this->_timer.started && this->_pausedAt != 0) {
+		unsigned long pausedDuration = millis() - this->_pausedAt;
+		this->_timer.last += pausedDuration;
+		this->_timer.started = true;
+		this->_pausedAt = 0;
+	}
+}
+
+/*
+ * Resets the timer to zero and clears the done state.
+ * After calling reset(), the timer is stopped and the elapsed time is set to zero.
+ * Use start() to start the timer again.
+ */
+void Neotimer::reset() {
+	this->stop();
+	this->_timer.last = millis();
+	this->_timer.done = false;
+}
+
+/*
+ * Sets the timer interval (preset) in milliseconds.
+ * This function allows you to change the timer's interval at runtime.
  */
 void Neotimer::set(unsigned long t) {
 	this->_timer.time = t;
 }
 
-
 /*
- * Gets the timer preset
+ * Gets the current timer interval (preset) in milliseconds.
+ * This function returns the currently configured timer interval.
  */
 unsigned long Neotimer::get() {
 	return this->_timer.time;
@@ -108,16 +271,6 @@ unsigned long Neotimer::get() {
  * When the signal changes, a timer is started. Only if the signal remains
  * stable for the configured debounce interval, the debounced state is updated.
  * The function returns true only when the debounced state changes.
- *
- * Parameters:
- *   signal - the current raw (unfiltered) digital input value
- *
- * Returns:
- *   true  - if the debounced state has changed (either to HIGH or LOW)
- *   false - if there is no stable change
- *
- * Note:
- *   Use getDebouncedState() to query the current debounced state at any time.
  */
 boolean Neotimer::debounce(boolean signal) {
 	if (signal != this->_lastSignal) {
@@ -139,85 +292,7 @@ boolean Neotimer::debounce(boolean signal) {
  * This function should be used in conjunction with debounce().
  * It always provides the last stable (debounced) value, regardless of whether
  * a change has just occurred.
- *
- * Returns:
- *   true  - if the debounced state is HIGH
- *   false - if the debounced state is LOW
- *
- * Example usage:
- *   if (myTimer.debounce(rawSignal)) {
- *       // State changed, you can check the new state:
- *       if (myTimer.getDebouncedState()) {
- *           // Button is pressed
- *       } else {
- *           // Button is released
- *       }
- *   }
  */
 boolean Neotimer::getDebouncedState() const {
 	return this->_debouncedState;
-}
-
-/*
- * Resets a timer
- */
-void Neotimer::reset() {
-	this->stop();
-	this->_timer.last = millis();
-	this->_timer.done = false;
-}
-
-/*
- * Start a timer
- */
-void Neotimer::start() {
-	this->reset();
-	this->_timer.started = true;
-	this->_waiting = true;
-}
-
-// start a timer with a specific interval
-void Neotimer::start(unsigned long t) {
-	this->set(t);
-	this->reset();
-	this->_timer.started = true;
-	this->_waiting = true;
-}
-
-/*
- * Stops a timer
- */
-unsigned long Neotimer::stop() {
-	this->_timer.started = false;
-	this->_waiting = false;
-	return this->getEllapsed();
-}
-
-/*
- * Gets ellapsed time
- */
-unsigned long Neotimer::getEllapsed() {
-	return millis() - this->_timer.last;
-}
-
-/*
- * Continues a stopped timer
- */
-void Neotimer::restart() {
-	if (!this->done()) {
-		this->_timer.started = true;
-		this->_waiting = true;
-	}
-}
-
-/*
- * Indicates if the timer is active
- * but has not yet finished.
- */
-boolean Neotimer::waiting() {
-	return (this->_timer.started && !this->done()) ? true : false;
-}
-
-boolean Neotimer::started() {
-	return this->_timer.started;
 }
