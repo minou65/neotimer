@@ -67,27 +67,6 @@ boolean Neotimer::repeat(int times, unsigned long _t) {
 	return this->repeat(times);
 }
 
-/*
- * Repeats a timer indefinetely
- * Useful to execute a task periodically.
- * Usage:
- * if(timer.repeat()){
- * 	  do something indefinetely, every second (default)
- * }
- */
-boolean Neotimer::repeat() {
-	if (this->done()) {
-		this->reset();
-		return true;
-	}
-	if (!this->_timer.started) {
-		this->_timer.last = millis();
-		this->_timer.started = true;
-		this->_waiting = true;
-	}
-	return false;
-}
-
 void Neotimer::repeatReset() {
 	this->repetitions = -1;
 }
