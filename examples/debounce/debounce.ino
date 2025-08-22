@@ -13,7 +13,8 @@ void setup() {
 }
 
 void loop() {
-  if(timer.debounce(digitalRead(Button_Pin))){
+  timer.debounce(digitalRead(Button_Pin));
+  if(timer.getDebouncedState()){
     Serial.println("Button pressed");  
   }
 }
