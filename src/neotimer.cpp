@@ -124,16 +124,59 @@ unsigned long Neotimer::get() {
 }
 
 /*
- * Returns the debounced value of signal
- * This is very useful to avoid "bouncing"
- * of electromechanical signals
+ * Debounces a digital signal (e.g. from a button or switch).
+ * Call this function repeatedly with the current raw signal value.
+ * When the signal changes, a timer is started. Only if the signal remains
+ * stable for the configured debounce interval, the debounced state is updated.
+ * The function returns true only when the debounced state changes.
+ *
+ * Parameters:
+ *   signal - the current raw (unfiltered) digital input value
+ *
+ * Returns:
+ *   true  - if the debounced state has changed (either to HIGH or LOW)
+ *   false - if there is no stable change
+ *
+ * Note:
+ *   Use getDebouncedState() to query the current debounced state at any time.
  */
 boolean Neotimer::debounce(boolean signal) {
-	if (this->done() && signal) {
+	if (signal != this->_lastSignal) {
 		this->start();
-		return true;
+		this->_lastSignal = signal;
+	}
+
+	if (this->done()) {
+		if (signal != this->_debouncedState) {
+			this->_debouncedState = signal;
+			return true; // State has changed and is stable
+		}
 	}
 	return false;
+}
+
+/*
+ * Returns the current debounced state of the digital input.
+ * This function should be used in conjunction with debounce().
+ * It always provides the last stable (debounced) value, regardless of whether
+ * a change has just occurred.
+ *
+ * Returns:
+ *   true  - if the debounced state is HIGH
+ *   false - if the debounced state is LOW
+ *
+ * Example usage:
+ *   if (myTimer.debounce(rawSignal)) {
+ *       // State changed, you can check the new state:
+ *       if (myTimer.getDebouncedState()) {
+ *           // Button is pressed
+ *       } else {
+ *           // Button is released
+ *       }
+ *   }
+ */
+boolean Neotimer::getDebouncedState() const {
+	return this->_debouncedState;
 }
 
 /*

@@ -38,6 +38,7 @@ public:
 	void set(unsigned long t);
 	unsigned long get();
 	boolean debounce(boolean signal);
+	boolean getDebouncedState() const;
 	int repetitions = NEOTIMER_UNLIMITED;
 
 private:
@@ -51,6 +52,8 @@ private:
 
 	struct myTimer _timer;
 	boolean _waiting;
+	bool _lastSignal = false;
+	bool _debouncedState = false;
 };
 
 
