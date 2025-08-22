@@ -1,11 +1,45 @@
 # neotimer
-Non blocking timer class for Arduino. 
+
+Non blocking timer class for Arduino.
 
 When you use a delay() function in an Arduino sketch, the processor stops everything it is doing until this delay is completed. That is called a blocking delay, because it blocks the processor until it finishes. Many times we don't want this to happen. This timer provides a way to use time delays without blocking the processor, so it can do other things while the timer ends up. This is called a non-blocking delay timer.
 
+## Features
+
+- Non-blocking timer (no delay needed)
+- Start/Stop/Reset/Restart
+- Repetitions (repeat)
+- Pause/Resume
+- Debounce for buttons/switches
+
 The timer provides basic functionality to implement different ways of timing in a sketch. There are two main ways to use the timer, first as a Start-Stop-Reset timer.
 
+## Quick API Overview
+
+| Method                        | Description |
+|-------------------------------|-------------|
+| `start()`                     | Start timer |
+| `start(unsigned long t)`      | Start timer with new interval |
+| `stop()`                      | Stop timer, returns elapsed time |
+| `reset()`                     | Reset timer |
+| `restart()`                   | Resume stopped timer (without reset) |
+| `pause()`                     | Pause timer |
+| `resume()`                    | Resume paused timer |
+| `set(unsigned long t)`        | Set interval |
+| `get()`                       | Get current interval |
+| `getEllapsed()`               | Get elapsed time since start/reset |
+| `done()`                      | true if interval elapsed |
+| `waiting()`                   | true if timer running but not done |
+| `started()`                   | true if timer started |
+| `repeat()`                    | Repeat action indefinitely |
+| `repeat(int times)`           | Repeat action x times |
+| `repeat(int times, long t)`   | Repeat x times with interval t |
+| `repeatReset()`               | Reset repeat counter |
+| `debounce(bool signal)`       | Debounce for button/switch |
+| `getDebouncedState()`         | Get debounced state |
+
 ### Start-Stop-Reset Mode
+
 When you create an instance of the timer you must specify the preset value of the timer. Then you call start() whenever you want the timer to start. If you want to know if the timer has ended you check for done(). See the example below.
 
 ```c++
@@ -20,15 +54,16 @@ void loop(){
   if(mytimer.done()){
     Serial.println("Timer finished");
   }
-  
+
   if(mytimer.waiting()){
     //...execute this code while the timer reaches done()
   }
 }
 ```
-You can use the waiting() function to check if the timer has been started but it's not done. 
-The stop() command is used to stop the timer momentarily and it returns the elapsed time since the start() was given. 
-In the start-stop mode reset() initializes the timer to start from the beginning. 
+
+You can use the waiting() function to check if the timer has been started but it's not done.
+The stop() command is used to stop the timer momentarily and it returns the elapsed time since the start() was given.
+In the start-stop mode reset() initializes the timer to start from the beginning.
 
 In this mode the timer will keep on counting past the done() event until you call the stop() and reset(). This allows the flexibility to use it to count the time required for some external condition to become true. For example,
 
@@ -37,7 +72,7 @@ void loop(){
   if(digitalRead(BTN1)==HIGH){
     mytimer.start();
   }
-  
+
   if(digitalRead(BTN1)==LOW){
     Serial.print("BTN1 pressed for ");
     Serial.print(mytimer.stop());
@@ -47,7 +82,20 @@ void loop(){
 }
 ```
 
+### Pause and Resume
+
+With `pause()` you can pause the timer, with `resume()` it continues. Example:
+
+```c++
+mytimer.start(5000); // 5 second timer
+// ...
+mytimer.pause(); // Pause timer
+// ...
+mytimer.resume(); // Continue timer
+```
+
 ### Repeat mode
+
 A convenient way to use the timer is to use the `repeat()` mode. This mode let's you repeat some code periodically X amount of times. The interval is set with the timer's `set(long t)` method. Once repeat has been called X times, it will not return true again, unless `repeatReset()` is called. The typical usage is inside an `if()` clause.
 
 If no argument is given to repeat, it will repeat the code unlimited amount of times.
@@ -56,9 +104,11 @@ Remember, it is non-blocking so the program will skip the code when the timer is
 There are three variants for your convenience:
 
 #### Variant 1
-```c++ 
+
+```c++
 repeat()
-``` 
+```
+
 In this mode it will repeat indefinitely times. The timer's preset is set using `set(long t)`.
 
 ```c++
@@ -75,9 +125,11 @@ void loop(){
 ```
 
 #### Variant 2
-```c++ 
+
+```c++
 repeat(int times)
-``` 
+```
+
 In this mode you specify the times that it should repeat a task. The delay is specified by setting the timer's preset with `set(long t)`.
 
 ```c++
@@ -94,9 +146,11 @@ void loop(){
 ```
 
 #### Variant 3
-```c++ 
+
+```c++
 repeat(int times, long t)
-``` 
+```
+
 In this mode you specify the times that it should repeat a task and the delay at the same time. **No need to set the timer's preset using `set(long t)`**.
 
 ```c++
@@ -109,6 +163,7 @@ void loop(){
 ```
 
 #### Using `repeatReset()`
+
 If you are using the repeat mode, after it repeats the call the amount of times set, the timer will stop repeating. If you want to restart it you can call `repeatReset()` to reset the timer's counter and start counting again. In the example below, when the repeat has been called 10 times it will stop until the user presses the button wired to D5. Once pressed the timer's counter is reset and it starts again for 10 times.
 
 ```c++
@@ -127,15 +182,15 @@ void setup() {
 }
 
 void loop(){
-  
+
   if(mytimer.repeat(10)){
-    
+
     digitalWrite(LED,!digitalRead(LED)); // Let's blink each second
 
     Serial.print("Calling this ");
     Serial.print(++count);
-    Serial.print(" times: LED is ");    
-    if(digitalRead(LED)){ 
+    Serial.print(" times: LED is ");
+    if(digitalRead(LED)){
       Serial.println("ON");
     }else{
       Serial.println("OFF");
@@ -143,10 +198,42 @@ void loop(){
 
   }
 
-  if(digitalRead(BTN1) == HIGH){   
+  if(digitalRead(BTN1) == HIGH){
     mytimer.repeatReset(); // If a button is pressed reset the repeat counter
     count=0;
   }
 
 }
 ```
+
+---
+
+## Debounce
+
+With the method `debounce(bool signal)` you can debounce a button or switch. The method returns true if the debounced state changes. Use `getDebouncedState()` to get the current debounced state.
+
+**Example:**
+
+```c++
+#include <neotimer.h>
+
+Neotimer timer = Neotimer(1000); // Debounce time 1s
+const int Button_Pin = 8;
+const int LED_Pin = 13;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(Button_Pin,INPUT);
+  pinMode(LED_Pin, OUTPUT);
+  timer.start();
+}
+
+void loop() {
+  timer.debounce(digitalRead(Button_Pin));
+  if(timer.getDebouncedState()){
+    Serial.println("Button pressed");
+  }
+}
+```
+
+---
