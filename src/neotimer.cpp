@@ -74,16 +74,17 @@ boolean Neotimer::done() {
  * This function is useful for executing a task periodically, for example in the Arduino loop.
  */
 boolean Neotimer::repeat() {
+	bool ret = false;
 	if (this->done()) {
 		this->reset();
-		return true;
+		ret = true;
 	}
 	if (!this->_timer.started) {
 		this->_timer.last = millis();
 		this->_timer.started = true;
 		this->_waiting = true;
 	}
-	return false;
+	return ret;
 }
 
 /*
