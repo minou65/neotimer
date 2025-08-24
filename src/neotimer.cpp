@@ -129,7 +129,54 @@ void Neotimer::repeatReset() {
 }
 
 /*
- * Indicates if the timer is active but has not yet finished.
+ * Immediately stops the repeat functionality of the timer.
+ *
+ * After calling repeatStop(), the internal repetition counter (_repetitions) is set to 0.
+ * As a result, repeat(int times) and repeat(int times, unsigned long t) will always return false,
+ * even if the originally specified number of repetitions has not yet been reached.
+ *
+ * This is useful to abort an ongoing repeat sequence prematurely, for example if a certain
+ * condition occurs and further repetitions should be prevented.
+ *
+ * Example:
+ *   Neotimer timer(1000); // Timer with 1 second interval
+ *   timer.repeat(10);     // Start 10 repetitions
+ *   // ... during program execution ...
+ *   timer.repeatStop();   // Immediately aborts the repetitions
+ *
+ * Note:
+ *   - After repeatStop(), you can start a new repeat sequence by calling repeatReset().
+ */
+void Neotimer::repeatStop() {
+	this->_repetitions = 0;
+}
+
+boolean Neotimer::repeatRunning() {
+	if (this->_repetitions != NEOTIMER_UNLIMITED && this->_repetitions > 0) {
+		return true;
+	}
+	return false;
+}
+
+/*
+ * Returns whether a repeat sequence is currently active.
+ *
+ * This function checks if the timer is in the middle of a repeat sequence
+ * started by repeat(int times) or repeat(int times, unsigned long t).
+ * It returns true if the internal repetition counter (_repetitions) is greater than 0
+ * and not set to NEOTIMER_UNLIMITED, indicating that there are still repetitions left.
+ * Otherwise, it returns false.
+ *
+ * This is useful to determine if a limited repeat operation is still running.
+ *
+ * Example:
+ *   timer.repeat(5);
+ *   while (timer.repeatRunning()) {
+ *     // Do something while repetitions are active
+ *   }
+ *
+ * Note:
+ *   - If repeatReset() was called or repeat() is used without a limit, repeatRunning() returns false.
  */
 boolean Neotimer::waiting() {
 	return (this->_timer.started && !this->done()) ? true : false;

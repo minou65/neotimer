@@ -45,6 +45,8 @@ public:
     boolean repeat(int times);
     boolean repeat(int times, unsigned long t);
     void repeatReset();
+    void repeatStop();
+    boolean repeatRunning();
 
     // Debounce functionality
     boolean debounce(boolean signal);
