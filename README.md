@@ -217,7 +217,7 @@ With the method `debounce(bool signal)` you can debounce a button or switch. The
 ```c++
 #include <neotimer.h>
 
-Neotimer timer = Neotimer(1000); // Debounce time 1s
+Neotimer timer = Neotimer(50); // Debounce time 50ms
 const int Button_Pin = 8;
 const int LED_Pin = 13;
 
