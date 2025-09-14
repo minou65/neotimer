@@ -223,7 +223,7 @@ const int LED_Pin = 13;
 
 void setup() {
   Serial.begin(9600);
-  pinMode(Button_Pin,INPUT);
+  pinMode(Button_Pin,INPUT_PULLUP);
   pinMode(LED_Pin, OUTPUT);
   timer.start();
 }
