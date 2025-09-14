@@ -229,7 +229,7 @@ void setup() {
 }
 
 void loop() {
-  timer.debounce(digitalRead(Button_Pin));
+  timer.debounce(digitalRead(Button_Pin) == LOW);
   if(timer.getDebouncedState()){
     Serial.println("Button pressed");
   }
